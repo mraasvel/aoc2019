@@ -2,11 +2,12 @@
 #include <fstream>
 #include <string>
 #include <cassert>
+#include <cstdio>
 
 #define FILENAME "input.txt"
 
 int main() {
-	std::fstream file(FILENAME);
+	std::ifstream file(FILENAME);
 	assert(file.is_open());
 
 	std::string line;
