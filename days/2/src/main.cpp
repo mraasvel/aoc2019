@@ -125,17 +125,17 @@ Part1
 	}
 }
 
-int main() {
-	std::ifstream file(FILENAME);
-	assert(file.is_open());
+// int main() {
+// 	std::ifstream file(FILENAME);
+// 	assert(file.is_open());
 
-	std::string line;
-	std::string content;
-	while (std::getline(file, line)) {
-		content.append(line);
-	}
-	file.close();
+// 	std::string line;
+// 	std::string content;
+// 	while (std::getline(file, line)) {
+// 		content.append(line);
+// 	}
+// 	file.close();
 
-	run(content);
-	return 0;
-}
+// 	run(content);
+// 	return 0;
+// }
