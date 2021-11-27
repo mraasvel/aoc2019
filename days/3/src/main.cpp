@@ -8,182 +8,125 @@
 #include <algorithm>
 #include <unordered_map>
 #include <set>
+#include <map>
 
 #define FILENAME "input.txt"
 // #define FILENAME "sample.txt"
 
-class Point {
-public:
-	Point()
-	: x(0), y(0), steps(0) {}
-	Point(const Point& rhs)
-	: x(rhs.x), y(rhs.y), steps(rhs.steps) {}
-	Point(int x, int y)
-	: x(x), y(y), steps(0) {}
 
-	Point& operator=(const Point& p) {
-		x = p.x;
-		y = p.y;
-		steps = p.steps;
-		return *this;
+typedef std::pair<int, int> Point;
+struct ComparePoint : std::binary_function<Point, Point, bool> {
+	bool operator()(const Point& a, const Point& b) const {
+		return a.first < b.first || (a.first == b.first && a.second < b.second);
 	}
-
-	bool operator<(const Point& b) const {
-		return x < b.x || (x == b.x && y < b.y);
-	}
-
-	bool operator==(const Point& rhs) const {
-		return x == rhs.x && y == rhs.y;
-	}
-
-	Point operator+(const Point& rhs) const {
-		return Point(x + rhs.x, y + rhs.y);
-	}
-
-	Point operator-(const Point& rhs) const {
-		return Point(x - rhs.x, y - rhs.y);
-	}
-
-	Point& operator+=(const Point& rhs) {
-		x += rhs.x;
-		y += rhs.y;
-		return *this;
-	}
-
-	friend std::ostream& operator<<(std::ostream& out, const Point& rhs);
-
-	int ManhattanDistance() const {
-		return std::abs(x) + std::abs(y);
-	}
-
-	void setSteps(std::size_t n) {
-		steps = n;
-	}
-
-	std::size_t getSteps() const {
-		return steps;
-	}
-
-private:
-	int x;
-	int y;
-	std::size_t steps;
 };
+typedef std::set<Point, ComparePoint> PointSetType;
 
-std::ostream& operator<<(std::ostream& out, const Point& rhs) {
-	out << "(" << rhs.x << ", " << rhs.y << ")";
-	return out;
+std::unordered_map<char, int> createDX() {
+	std::unordered_map<char, int> m;
+	m['U'] = 0;
+	m['D'] = 0;
+	m['R'] = 1;
+	m['L'] = -1;
+	return m;
 }
 
-class Wire {
+std::unordered_map<char, int> createDY() {
+	std::unordered_map<char, int> m;
+	m['U'] = 1;
+	m['D'] = -1;
+	m['R'] = 0;
+	m['L'] = 0;
+	return m;
+}
 
-public:
-	typedef std::set<Point> PointSet;
-public:
-	void Fill(const std::string& line) {
-		std::vector<std::string> coords = util::splitString(line, ',');
+static const std::unordered_map<char, int> DX = createDX();
+static const std::unordered_map<char, int> DY = createDY();
 
-		Point p;
-		std::size_t num_steps = 0;
-		for (const std::string& coord : coords) {
-			int value = std::strtol(&coord.c_str()[1], NULL, 10);
-			for (int i = 0; i < value; ++i) {
-				switch (coord.front()) {
-					case 'U':
-						p += Point(0, 1);
-						break;
-					case 'D':
-						p += Point(0, -1);
-						break;
-					case 'R':
-						p += Point(1, 0);
-						break;
-					case 'L':
-						p += Point(-1, 0);
-						break;
-				}
-				++num_steps;
-				p.setSteps(num_steps);
-				points.insert(p);
+static std::vector<std::map<Point, std::size_t, ComparePoint>> step_vector;
+
+void CreatePoints(PointSetType& wire, const std::string& line) {
+	auto split = util::splitString(line, ',');
+
+	std::map<Point, std::size_t, ComparePoint> step_map;
+
+	Point start(0, 0);
+	std::size_t steps = 1;
+	for (const auto& cmd : split) {
+		char dir = cmd[0];
+		int n = std::stoi(cmd.substr(1));
+
+		assert(DX.find(dir) != DX.end());
+
+		for (int i = 0; i < n; ++i) {
+			start.first += DX.find(dir)->second;
+			start.second += DY.find(dir)->second;
+			if (wire.count(start) == 0) {
+				wire.insert(start);
+				step_map[start] = steps;
 			}
+			++steps;
 		}
 	}
+	step_vector.push_back(step_map);
+}
 
-	PointSet::size_type size() const {
-		return points.size();
+int MD(const Point& p) {
+	return std::abs(p.first) + std::abs(p.second);
+}
+
+struct MDComp : public std::binary_function<Point, Point, bool> {
+	bool operator()(const Point& a, const Point& b) {
+		return MD(a) < MD(b);
 	}
-
-	PointSet::const_iterator begin() const {
-		return points.begin();
-	}
-
-	PointSet::const_iterator end() const {
-		return points.end();
-	}
-
-	PointSet::size_type count(const Point& p) const {
-		return points.count(p);
-	}
-
-	PointSet::const_iterator find(const Point& p) const {
-		return points.find(p);
-	}
-
-
-private:
-	PointSet points;
 };
 
-Wire::PointSet Intersect(const Wire& a, const Wire& b) {
-	Wire::PointSet result;
+struct PointCompare : public std::binary_function<Point, Point, bool> {
+	bool operator()(const Point& a, const Point& b) {
+		return a.first == b.first && a.second == b.second;
+	}
+};
 
-	for (const auto& p : a) {
-		if (b.count(p) != 0) {
-			Point prime = p;
-			Point intersected = *b.find(p);
-			prime.setSteps(p.getSteps() + intersected.getSteps());
-			result.insert(prime);
+struct StepCompare : public std::binary_function<Point, Point, bool> {
+	bool operator()(const Point& a, const Point& b) {
+		return step_vector[2][a] < step_vector[2][b];
+	}
+};
+
+PointSetType Intersect(const PointSetType& a, const PointSetType& b) {
+	PointSetType result;
+	std::map<Point, std::size_t, ComparePoint> step_map;
+	for (const Point& p : a) {
+		if (b.count(p) > 0) {
+			step_map[p] = step_vector[0][p] + step_vector[1][p];
+			result.insert(p);
 		}
 	}
-
+	step_vector.push_back(step_map);
 	return result;
-}
-
-bool ManhattanDistanceCompare(const Point& a, const Point& b) {
-	return a.ManhattanDistance() < b.ManhattanDistance();
-}
-
-bool StepCompare(const Point& a, const Point& b) {
-	return a.getSteps() < b.getSteps();
 }
 
 int main() {
 
-	Wire wires[2];
+	PointSetType W1;
+	PointSetType W2;
 
 	std::ifstream file(FILENAME);
 	assert(file.is_open());
 	std::string line;
-	int i = 0;
-	while (std::getline(file, line)) {
-		wires[i].Fill(line);
-		++i;
-	}
+	std::getline(file, line);
+	CreatePoints(W1, line);
+	std::getline(file, line);
+	CreatePoints(W2, line);
 	file.close();
 
+	PointSetType intersection = Intersect(W1, W2);
 
-	std::set<Point> intersections = Intersect(wires[0], wires[1]);
-
-	std::cout << "Size1: " << wires[0].size() << std::endl;
-	std::cout << "Size2: " << wires[1].size() << std::endl;
-	std::cout << "Intersections: " << intersections.size() << std::endl;
-
-	Point result = *std::min_element(intersections.begin(), intersections.end(), &ManhattanDistanceCompare);
-	Point result2 = *std::min_element(intersections.begin(), intersections.end(), &StepCompare);
-
-	std::cout << "Closest intersection: " << result << std::endl;
-	std::cout << "Distance: " << result.ManhattanDistance() << std::endl;
-	std::cout << "Reach: " << result2 << " in " << result2.getSteps() << " steps" << std::endl;
+	Point r = *std::min_element(intersection.begin(), intersection.end(), MDComp());
+	Point r2 = *std::min_element(intersection.begin(), intersection.end(), StepCompare());
+	std::cout << "(" << r.first << ", " << r.second << ")" << std::endl;
+	std::cout << MD(r) << std::endl;
+	std::cout << step_vector[2][r2] << std::endl;
 
 	return 0;
 }
