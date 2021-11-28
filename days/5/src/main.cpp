@@ -19,24 +19,18 @@
 #define POSITION 0
 #define IMMEDIATE 1
 
-int firstParamMode(int mode) {
+int getMode(int n, int mode) {
+	while (n-- > 1) {
+		mode /= 10;
+	}
 	return mode % 10;
 }
 
-int secondParamMode(int mode) {
-	return (mode / 10) % 10;
-}
-
-int thirdParamMode(int mode) {
-	return (mode / 100) % 10;
-}
-
-// call like tokens, ip + 1, firstParamMode(mode);
-int getPosition(std::vector<int> tokens, int index, int mode) {
-	if (mode) {
-		return index;
+int getIndex(std::vector<int> tokens, int ip, int index, int mode) {
+	if (getMode(index, mode)) {
+		return ip + index;
 	} else {
-		return tokens[index];
+		return tokens[ip + index];
 	}
 }
 
@@ -64,61 +58,54 @@ int main() {
 		int mode = tokens[ip] / 100;
 		switch (op) {
 			case 1:
-				assert(thirdParamMode(mode) == POSITION);
-				tokens[getPosition(tokens, ip + 3, thirdParamMode(mode))]
-					= tokens[getPosition(tokens, ip + 1, firstParamMode(mode))]
-					+ tokens[getPosition(tokens, ip + 2, secondParamMode(mode))];
+				tokens[getIndex(tokens, ip, 3, mode)] =
+					tokens[getIndex(tokens, ip, 1, mode)] + tokens[getIndex(tokens, ip, 2, mode)];
 				ip += 4;
 				break;
 			case 2:
-				assert(thirdParamMode(mode) == POSITION);
-				tokens[getPosition(tokens, ip + 3, thirdParamMode(mode))]
-					= tokens[getPosition(tokens, ip + 1, firstParamMode(mode))]
-					* tokens[getPosition(tokens, ip + 2, secondParamMode(mode))];
+				tokens[getIndex(tokens, ip, 3, mode)] =
+					tokens[getIndex(tokens, ip, 1, mode)] * tokens[getIndex(tokens, ip, 2, mode)];
 				ip += 4;
 				break;
 			case 3:
 				int n;
 				std::cin >> n;
-				assert (firstParamMode(mode) == POSITION);
-				tokens[getPosition(tokens, ip + 1, firstParamMode(mode))] = n;
+				tokens[getIndex(tokens, ip, 1, mode)] = n;
 				ip += 2;
 				break;
 			case 4:
-				std::cout << tokens[getPosition(tokens, ip + 1, firstParamMode(mode))];
+				std::cout << tokens[getIndex(tokens, ip, 1, mode)];
 				ip += 2;
 				break;
 			case 5:
-				if (tokens[getPosition(tokens, ip + 1, firstParamMode(mode))]) {
-					ip = tokens[getPosition(tokens, ip + 2, secondParamMode(mode))];
+				if (tokens[getIndex(tokens, ip, 1, mode)]) {
+					ip = tokens[getIndex(tokens, ip, 2, mode)];
 				} else {
 					ip += 3;
 				}
 				break;
 			case 6:
-				if (!tokens[getPosition(tokens, ip + 1, firstParamMode(mode))]) {
-					ip = tokens[getPosition(tokens, ip + 2, secondParamMode(mode))];
+				if (!tokens[getIndex(tokens, ip, 1, mode)]) {
+					ip = tokens[getIndex(tokens, ip, 2, mode)];
 				} else {
 					ip += 3;
 				}
 				break;
 			case 7:
-				assert(thirdParamMode(mode) == POSITION);
-				if (tokens[getPosition(tokens, ip + 1, firstParamMode(mode))]
-					< tokens[getPosition(tokens, ip + 2, secondParamMode(mode))]) {
-					tokens[getPosition(tokens, ip + 3, thirdParamMode(mode))] = 1;
+				if (tokens[getIndex(tokens, ip, 1, mode)]
+					< tokens[getIndex(tokens, ip, 2, mode)]) {
+					tokens[getIndex(tokens, ip, 3, mode)] = 1;
 				} else {
-					tokens[getPosition(tokens, ip + 3, thirdParamMode(mode))] = 0;
+					tokens[getIndex(tokens, ip, 3, mode)] = 0;
 				}
 				ip += 4;
 				break;
 			case 8:
-				assert(thirdParamMode(mode) == POSITION);
-				if (tokens[getPosition(tokens, ip + 1, firstParamMode(mode))]
-					== tokens[getPosition(tokens, ip + 2, secondParamMode(mode))]) {
-					tokens[getPosition(tokens, ip + 3, thirdParamMode(mode))] = 1;
+				if (tokens[getIndex(tokens, ip, 1, mode)]
+					== tokens[getIndex(tokens, ip, 2, mode)]) {
+					tokens[getIndex(tokens, ip, 3, mode)] = 1;
 				} else {
-					tokens[getPosition(tokens, ip + 3, thirdParamMode(mode))] = 0;
+					tokens[getIndex(tokens, ip, 3, mode)] = 0;
 				}
 				ip += 4;
 				break;
