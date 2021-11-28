@@ -12,7 +12,6 @@
 1. read file
 2. split file
 3. convert tokens to int, store in vector
-4. run opcode for permutations (x, y) from inclusive range [0, 99]
 */
 
 #define TARGET 19690720
@@ -104,6 +103,7 @@ int main() {
 				}
 				break;
 			case 7:
+				assert(thirdParamMode(mode) == POSITION);
 				if (tokens[getPosition(tokens, ip + 1, firstParamMode(mode))]
 					< tokens[getPosition(tokens, ip + 2, secondParamMode(mode))]) {
 					tokens[getPosition(tokens, ip + 3, thirdParamMode(mode))] = 1;
@@ -113,6 +113,7 @@ int main() {
 				ip += 4;
 				break;
 			case 8:
+				assert(thirdParamMode(mode) == POSITION);
 				if (tokens[getPosition(tokens, ip + 1, firstParamMode(mode))]
 					== tokens[getPosition(tokens, ip + 2, secondParamMode(mode))]) {
 					tokens[getPosition(tokens, ip + 3, thirdParamMode(mode))] = 1;
