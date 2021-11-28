@@ -11,7 +11,7 @@
 /*
 1. read file
 2. split file
-3. convert tokens to int, store in vector
+3. convert ops to int, store in vector
 */
 
 #define TARGET 19690720
@@ -19,102 +19,118 @@
 #define POSITION 0
 #define IMMEDIATE 1
 
-int getMode(int n, int mode) {
-	while (n-- > 1) {
-		mode /= 10;
-	}
-	return mode % 10;
-}
+class Operations {
 
-int getIndex(std::vector<int> tokens, int ip, int index, int mode) {
-	if (getMode(index, mode)) {
-		return ip + index;
-	} else {
-		return tokens[ip + index];
+public:
+	typedef std::vector<int> table_t;
+
+public:
+	Operations()
+	: ip(0) {}
+
+	int getMode(int n, int mode) const {
+		while (n-- > 1) {
+			mode /= 10;
+		}
+		return mode % 10;
 	}
-}
+
+	int getIndex(int index, int mode) const {
+		if (getMode(index, mode)) {
+			return ip + index;
+		} else {
+			return ops[ip + index];
+		}
+	}
+
+	void push_back(int n) {
+		ops.push_back(n);
+	}
+
+	table_t::reference get(int index, int mode) {
+		return ops[getIndex(index, mode)];
+	}
+
+	void addIp(int n) {
+		ip += n;
+	}
+
+	void setIp(int n) {
+		ip = n;
+	}
+
+	int getOp() const {
+		return ops[ip];
+	}
+
+private:
+	table_t ops;
+	int ip;
+};
 
 int main() {
 	std::ifstream ifs(FILENAME);
 
 	assert(ifs.is_open());
 
-	std::vector<int> tokens;
-
+	Operations ops;
 	std::string line;
 	std::getline(ifs, line);
 	auto v = util::splitString(line, ',');
-	// lambda poggers
-	std::for_each(v.begin(), v.end(), [&tokens] (const std::string& x) -> void {
-			tokens.push_back(std::stoi(x));
+	std::for_each(v.begin(), v.end(), [&ops] (const std::string& x) -> void {
+			ops.push_back(std::stoi(x));
 		});
 	ifs.close();
 
-	int ip = 0;
-	bool cond = true;
-	while (cond) {
-		tokens[ip];
-		int op = tokens[ip] % 100;
-		int mode = tokens[ip] / 100;
-		switch (op) {
-			case 1:
-				tokens[getIndex(tokens, ip, 3, mode)] =
-					tokens[getIndex(tokens, ip, 1, mode)] + tokens[getIndex(tokens, ip, 2, mode)];
-				ip += 4;
-				break;
-			case 2:
-				tokens[getIndex(tokens, ip, 3, mode)] =
-					tokens[getIndex(tokens, ip, 1, mode)] * tokens[getIndex(tokens, ip, 2, mode)];
-				ip += 4;
-				break;
-			case 3:
-				int n;
-				std::cin >> n;
-				tokens[getIndex(tokens, ip, 1, mode)] = n;
-				ip += 2;
-				break;
-			case 4:
-				std::cout << tokens[getIndex(tokens, ip, 1, mode)];
-				ip += 2;
-				break;
-			case 5:
-				if (tokens[getIndex(tokens, ip, 1, mode)]) {
-					ip = tokens[getIndex(tokens, ip, 2, mode)];
-				} else {
-					ip += 3;
-				}
-				break;
-			case 6:
-				if (!tokens[getIndex(tokens, ip, 1, mode)]) {
-					ip = tokens[getIndex(tokens, ip, 2, mode)];
-				} else {
-					ip += 3;
-				}
-				break;
-			case 7:
-				if (tokens[getIndex(tokens, ip, 1, mode)]
-					< tokens[getIndex(tokens, ip, 2, mode)]) {
-					tokens[getIndex(tokens, ip, 3, mode)] = 1;
-				} else {
-					tokens[getIndex(tokens, ip, 3, mode)] = 0;
-				}
-				ip += 4;
-				break;
-			case 8:
-				if (tokens[getIndex(tokens, ip, 1, mode)]
-					== tokens[getIndex(tokens, ip, 2, mode)]) {
-					tokens[getIndex(tokens, ip, 3, mode)] = 1;
-				} else {
-					tokens[getIndex(tokens, ip, 3, mode)] = 0;
-				}
-				ip += 4;
-				break;
-			default:
-				assert(op == 99);
-				cond = false;
+	printf("Start\n");
+	while (true) {
+		int op = ops.getOp() % 100;
+		int mode = ops.getOp() / 100;
+
+		if (op == 1) {
+			ops.get(3, mode) = ops.get(1, mode) + ops.get(2, mode);
+			ops.addIp(4);
+		} else if (op == 2) {
+			ops.get(3, mode) = ops.get(1, mode) * ops.get(2, mode);
+			ops.addIp(4);
+		} else if (op == 3) {
+			int input = 5;
+			ops.get(1, mode) = input;
+			ops.addIp(2);
+		} else if (op == 4) {
+			std::cout << ops.get(1, mode);
+			ops.addIp(2);
+		} else if (op == 5) {
+			if (ops.get(1, mode)) {
+				ops.setIp(ops.get(2, mode));
+			} else {
+				ops.addIp(3);
+			}
+		} else if (op == 6) {
+			if (!ops.get(1, mode)) {
+				ops.setIp(ops.get(2, mode));
+			} else {
+				ops.addIp(3);
+			}
+		} else if (op == 7) {
+			if (ops.get(1, mode) < ops.get(2, mode)) {
+				ops.get(3, mode) = 1;
+			} else {
+				ops.get(3, mode) = 0;
+			}
+			ops.addIp(4);
+		} else if (op == 8) {
+			if (ops.get(1, mode) == ops.get(2, mode)) {
+				ops.get(3, mode) = 1;
+			} else {
+				ops.get(3, mode) = 0;
+			}
+			ops.addIp(4);
+		} else {
+			assert(op == 99);
+			std::cout << std::endl;
+			break;
 		}
 	}
-
-	printf("\n");
 	return 0;
 }
