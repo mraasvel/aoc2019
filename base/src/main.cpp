@@ -11,6 +11,8 @@
 #define FILENAME "input.txt"
 // #define FILENAME "sample.txt"
 
+using namespace std;
+
 int main() {
 	std::ifstream file(FILENAME);
 	assert(file.is_open());
