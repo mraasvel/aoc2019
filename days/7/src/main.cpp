@@ -7,8 +7,8 @@
 #include <cstdlib>
 #include <deque>
 
-// #define FILENAME "input.txt"
-#define FILENAME "sample.txt"
+#define FILENAME "input.txt"
+// #define FILENAME "sample.txt"
 
 /*
 1. read file
@@ -68,17 +68,20 @@ public:
 		return ops[ip];
 	}
 
+	bool phase_set;
+	std::size_t phase;
+	std::size_t output;
+
 private:
 	table_t ops;
 	value_type ip;
 };
 
-std::string runIntCode(Operations ops, std::size_t phase, std::size_t input, std::vector<int> phases) {
+std::size_t max_value = 0;
+
+std::string runIntCode(Operations& ops, std::size_t phase, std::size_t input) {
 	std::string result;
-	bool phase_set = false;
-	std::size_t phase_index = 0;
-	std::deque<std::size_t> inputs;
-	inputs.push_back(input);
+	// std::cout << "Running: " << ops.phase << std::endl;
 	while (true) {
 		std::size_t op = ops.getOp() % 100;
 		std::size_t mode = ops.getOp() / 100;
@@ -90,26 +93,21 @@ std::string runIntCode(Operations ops, std::size_t phase, std::size_t input, std
 			ops.get(3, mode) = ops.get(1, mode) * ops.get(2, mode);
 			ops.addIp(4);
 		} else if (op == 3) {
-			// std::cout << "INPUT: ";
-			// std::cin >> input;
-			if (!phase_set) {
-				std::cout << "SET PHASE: " << phases[phase_index] << std::endl;
-				ops.get(1, mode) = phases[phase_index % phases.size()];
-				++phase_index;
-				phase_set = true;
+			if (!ops.phase_set) {
+				// std::cout << "Input (phase): " << ops.phase << std::endl;
+				ops.get(1, mode) = ops.phase;
+				ops.phase_set = true;
 			} else {
-				std::cout << "SET INPUT: " << inputs.front() << std::endl;
-				ops.get(1, mode) = inputs.front();
-				inputs.pop_front();
-				phase_set = false;
+				// std::cout << "Input: " << input << std::endl;
+				ops.get(1, mode) = input;
 			}
 			ops.addIp(2);
 		} else if (op == 4) {
 			result.append(std::to_string(ops.get(1, mode)));
 			input = ops.get(1, mode);
-			inputs.push_back(input);
-			std::cout << "OUTPUT: " << input << std::endl;
 			ops.addIp(2);
+			ops.output = input;
+			return std::to_string(input);
 		} else if (op == 5) {
 			if (ops.get(1, mode)) {
 				ops.setIp(ops.get(2, mode));
@@ -137,8 +135,10 @@ std::string runIntCode(Operations ops, std::size_t phase, std::size_t input, std
 			}
 			ops.addIp(4);
 		} else {
+			max_value = std::max(input, max_value);
 			assert(op == 99);
-			return result;
+			// std::cout << input << std::endl;
+			return "";
 		}
 	}
 	return result;
@@ -152,7 +152,7 @@ std::size_t max_val = 0;
 void PartOne(std::vector<int> phases, Operations& ops) {
 	std::size_t input = 0;
 	for (auto phase : phases) {
-		std::string result = runIntCode(ops, phase, input, phases);
+		std::string result = runIntCode(ops, phase, input);
 		// input = std::stoi(result);
 		input = std::strtoull(result.c_str(), NULL, 10);
 		std::cout << result << std::endl;
@@ -165,7 +165,25 @@ void PartOne(std::vector<int> phases, Operations& ops) {
 }
 
 void PartTwo(std::vector<int> phases, Operations& ops) {
-	std::cout << runIntCode(ops, phases[0], 0, phases) << std::endl;
+	std::vector<Operations> amps;
+
+	for (std::size_t i = 0; i < 5; ++i) {
+		amps.push_back(ops);
+		amps[i].phase_set = false;
+		amps[i].phase = phases[i];
+	}
+	
+	std::size_t i = 0;
+	std::size_t input = 0;
+	while (true) {
+		std::string output = runIntCode(amps[i % 5], phases[i % 5], input);
+		if (output.empty()) {
+			break;
+		}
+		// std::cout << output << std::endl;
+		input = std::stoull(output);
+		++i;
+	}
 }
 
 bool hasDuplicates(const std::vector<int>& comb) {
@@ -189,7 +207,8 @@ void combinations(std::vector<int>& comb, Operations& ops, int index) {
 			// 	std::cout << x << ' ';
 			// }
 			// std::cout << std::endl;
-			PartOne(comb, ops);
+			// PartOne(comb, ops);
+			PartTwo(comb, ops);
 		}
 	}
 }
@@ -211,8 +230,8 @@ int main() {
 
 	std::vector<int> comb(5);
 
-	// combinations(comb, ops, 0);
-	PartTwo(std::vector<int> {9, 8, 7, 6, 5}, ops);
-	// std::cout << max_val << std::endl;
+	combinations(comb, ops, 0);
+	// PartTwo(std::vector<int> {9,7,8,5,6}, ops);
+	std::cout << max_value << std::endl;
 	return 0;
 }
